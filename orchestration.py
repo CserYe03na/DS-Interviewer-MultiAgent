@@ -84,7 +84,8 @@ def agent2(state:AgentState):
 
 def agent3(state:AgentState):
     agent2_output = state.get("retrieve_questions")
-    user_request = state.get("user_desc")
+    days_left = state.get("days_left")
+    user_request = f"Create a {days_left} day plan."
     agent2_tasks = []
     for _, task in agent2_output.items():
         agent2_tasks.extend(task)
