@@ -1,7 +1,7 @@
 import json
 from openai import OpenAI
 
-from scripts.skill_analyzer_agent import SkillAnalyzerAgent
+from scripts.Agent1.skill_analyzer_agent import SkillAnalyzerAgent
 from scripts.scope_planner_agent import ScopePlannerAgent
 
 def main():

@@ -1,6 +1,6 @@
-from scripts.input_analyzer import InputAnalyzer
-from scripts.skill_mapper import SkillMapper
-from scripts.weight_allocator import WeightAllocator
+from scripts.Agent1.input_analyzer import InputAnalyzer
+from scripts.Agent1.skill_mapper import SkillMapper
+from scripts.Agent1.weight_allocator import WeightAllocator
 
 
 class SkillAnalyzerAgent:

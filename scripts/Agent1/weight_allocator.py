@@ -1,6 +1,7 @@
 ## weight_allocator.py: module C of skill_analyzer_agent - weight allocation to each level of preference
+
 import math
-import json
+# import json
 
 class WeightAllocator:
 
@@ -116,73 +117,73 @@ class WeightAllocator:
 
         return {s: round(w / total, 4) for s, w in final_weights.items()}
 
-## Example test
-def main():
+# ## Example test
+# def main():
 
-    mapped_skills = {
-    "required_mapped_skills": {
-        "SQL": [
-        "sql_basic",
-        "sql_filter",
-        "sql_aggregation",
-        "sql_group_by",
-        "sql_sorting"
-        ],
-        "window functions": [
-        "sql_window_function"
-        ],
-        "complex analytical queries": []
-    },
-    "preferred_mapped_skills": {
-        "Pandas": [
-        "pandas_data_cleaning",
-        "pandas_data_manipulation",
-        "pandas_data_selection",
-        "pandas_data_reshaping",
-        "pandas_data_inspection"
-        ],
-        "random forest": [
-        "random_forest"
-        ]
-    },
-    "general_mapped_skills": {
-        "data analysis": [],
-        "metrics framework": [],
-        "statistical methods": [],
-        "A/B testing": [],
-        "causal inference": [],
-        "data analytics": [],
-        "business decisions": [],
-        "data science theories": [],
-        "methodology": [],
-        "analysis efficiency": [],
-        "data product tools": [
-        "pandas_data_cleaning",
-        "pandas_data_manipulation",
-        "pandas_data_selection"
-        ],
-        "Math": [
-        "algo_math"
-        ],
-        "Statistic": [],
-        "Data Science": [],
-        "Machine Learning": [
-        "supervised_machine learning",
-        "classification",
-        "clustering",
-        "decision_trees",
-        "neural_networks"
-        ],
-        "big data technologies": [
-        "databases"
-        ]
-    }
-}
+#     mapped_skills = {
+#     "required_mapped_skills": {
+#         "SQL": [
+#         "sql_basic",
+#         "sql_filter",
+#         "sql_aggregation",
+#         "sql_group_by",
+#         "sql_sorting"
+#         ],
+#         "window functions": [
+#         "sql_window_function"
+#         ],
+#         "complex analytical queries": []
+#     },
+#     "preferred_mapped_skills": {
+#         "Pandas": [
+#         "pandas_data_cleaning",
+#         "pandas_data_manipulation",
+#         "pandas_data_selection",
+#         "pandas_data_reshaping",
+#         "pandas_data_inspection"
+#         ],
+#         "random forest": [
+#         "random_forest"
+#         ]
+#     },
+#     "general_mapped_skills": {
+#         "data analysis": [],
+#         "metrics framework": [],
+#         "statistical methods": [],
+#         "A/B testing": [],
+#         "causal inference": [],
+#         "data analytics": [],
+#         "business decisions": [],
+#         "data science theories": [],
+#         "methodology": [],
+#         "analysis efficiency": [],
+#         "data product tools": [
+#         "pandas_data_cleaning",
+#         "pandas_data_manipulation",
+#         "pandas_data_selection"
+#         ],
+#         "Math": [
+#         "algo_math"
+#         ],
+#         "Statistic": [],
+#         "Data Science": [],
+#         "Machine Learning": [
+#         "supervised_machine learning",
+#         "classification",
+#         "clustering",
+#         "decision_trees",
+#         "neural_networks"
+#         ],
+#         "big data technologies": [
+#         "databases"
+#         ]
+#     }
+# }
 
-    allocator = WeightAllocator()
-    weights = allocator.allocate_weights(mapped_skills)
+#     allocator = WeightAllocator()
+#     weights = allocator.allocate_weights(mapped_skills)
 
-    print(json.dumps(weights, indent=2))
+#     print(json.dumps(weights, indent=2))
 
-if __name__ == "__main__":
-    main()
+# if __name__ == "__main__":
+#     main()

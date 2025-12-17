@@ -1,7 +1,7 @@
 ## input_analyzer.py: module A of skill_analyzer_agent - technical skill keywords extraction from inputs
 
 import json
-from openai import OpenAI
+# from openai import OpenAI
 
 def load_prompt(path: str) -> str:
     with open(path, "r", encoding="utf-8") as f:

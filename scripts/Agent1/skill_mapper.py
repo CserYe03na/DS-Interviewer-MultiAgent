@@ -1,8 +1,9 @@
 ## skill_mapper.py: module B of skill_analyzer_agent - technical skill keywords extraction from inputs
+
 import json
 from string import Template
 from typing import List
-from openai import OpenAI
+# from openai import OpenAI
 
 ## Skill mapping
 ## 1) Separate functional/operational skills from difficulty labels

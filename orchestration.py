@@ -1,19 +1,14 @@
 from typing import TypedDict, Optional, List, Dict, Any
 import os
 from pathlib import Path
-from scripts.skill_analyzer_agent import SkillAnalyzerAgent
+from scripts.Agent1.skill_analyzer_agent import SkillAnalyzerAgent
 from scripts.scope_planner_agent import ScopePlannerAgent
-from scripts.input_analyzer import TEMPLATE_A
-from scripts.skill_mapper import TEMPLATE_B
 from scripts.Agent2.retrieval import init_retriever
 from scripts.Agent3.Planning_Agent import get_openai_client, normalize_tasks, run_planning_agent
 from openai import OpenAI
 from langgraph.graph import StateGraph, END
 
 client = OpenAI()
-## base_dir = Path(__file__).resolve().parent
-## taxonomy_path = base_dir / "data" / "taxonomy_skills.json"
-## merge1_path = base_dir / "Agent2" / "merged1.jsonl"
 
 
 

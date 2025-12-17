@@ -38,61 +38,6 @@ def build_urls(title: str, file_path: Path):
 
     return leetcode_url, github_url
 
-
-# # clean vector content: no table included
-# def clean_vector_content(raw: str) -> str:
-#     lines = raw.splitlines()
-
-#     if lines and lines[0].strip().startswith("--"):
-#         lines = lines[1:]
-
-#     cleaned = []
-#     in_solution = False
-
-#     for raw_line in lines:
-#         line = raw_line.strip()
-
-#         # remove prefix '--'
-#         if line.startswith("--"):
-#             line = line[2:].strip()
-
-#         if not line:
-#             continue
-
-#         # stop at "solution"
-#         if line.lower().startswith("solution") or "solution:" in line.lower():
-#             in_solution = True
-#             continue
-#         if in_solution:
-#             continue
-
-#         # remove ASCII table
-#         if (
-#             line.startswith("|") or
-#             line.startswith("+")
-#         ) and len(line) > 3:
-#             continue
-
-#         # remove markdown separator (|----|---|)
-#         if "|" in line and ("--" in line or "---" in line):
-#             continue
-
-#         # remove schema definitions
-#         schema_keywords = [
-#             "create table",
-#             "primary key",
-#             "column name",
-#             "type",
-#             "table "
-#         ]
-#         if any(k in line.lower() for k in schema_keywords):
-#             continue
-
-#         cleaned.append(line)
-
-#     return "\n".join(cleaned).strip()
-
-# raw solution
 def extract_solution_raw(raw: str) -> str:
 
     lines = raw.splitlines()

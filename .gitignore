@@ -1,1 +1,4 @@
 scripts/test.py
+scripts/main.py
+scripts/streamlit.py
+.env
