@@ -1,5 +1,6 @@
 from scripts.input_analyzer import InputAnalyzer
-from scripts.skill_mapper import SkillMapper, WeightAllocator
+from scripts.skill_mapper import SkillMapper
+from scripts.weight_allocator import WeightAllocator
 
 
 class SkillAnalyzerAgent:
@@ -13,15 +14,15 @@ class SkillAnalyzerAgent:
         result = agent.run(jd_text, user_desc, total_questions)
     """
 
-    def __init__(self, client, taxonomy_path, template_A, template_B):
+    def __init__(self, client):
         """
         client: OpenAI client instance
         taxonomy_path: path to taxonomy_skills.json
         template_A: keyword extraction prompt
         template_B: mapping prompt template
         """
-        self.analyzer = InputAnalyzer(client, template_A)
-        self.mapper = SkillMapper(client, taxonomy_path, template_B)
+        self.analyzer = InputAnalyzer(client)
+        self.mapper = SkillMapper(client)
         self.allocator = WeightAllocator()
 
     def run(self, jd_text, user_desc):
@@ -38,10 +39,10 @@ class SkillAnalyzerAgent:
         mapped = self.mapper.map(extracted)
 
         # C: allocate questions
-        plan = self.allocator.allocate_weights(mapped)
+        weights = self.allocator.allocate_weights(mapped)
 
         return {
             "extracted": extracted,
             "mapped": mapped,
-            "plan": plan
+            "weights": weights
         }

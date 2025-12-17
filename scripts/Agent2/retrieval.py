@@ -17,7 +17,7 @@ from typing import List, Dict, Any, Optional
 import numpy as np
 from sentence_transformers import SentenceTransformer
 
-
+MERGED_PATH = Path("data/merged1.jsonl")
 # ========= 1. 加载 merged.jsonl =========
 
 def load_merged(merged_path: Path) -> List[dict]:
@@ -176,7 +176,7 @@ class Retriever:
 # ========= 5. 初始化入口 =========
 
 def init_retriever(
-    merged_path: Path,
+    merged_path: Path = MERGED_PATH,
     model_name: str = "sentence-transformers/all-MiniLM-L6-v2",
 ) -> Retriever:
 

@@ -593,7 +593,7 @@ def run_planning_agent(
 # MAIN (CLI)   包含default, fake inputs
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--input", default="merged.jsonl")
+    parser.add_argument("--input", default="data/merged.jsonl")
     parser.add_argument("--sample", type=int, default=50)
     parser.add_argument("--no-llm", action="store_true")
     parser.add_argument(

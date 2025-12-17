@@ -62,18 +62,31 @@ if st.session_state.current_chat_id is None:
         placeholder="Describe your background, skills, requirements..."
     )
 
+    days_left = st.slider(
+        "Days left before interview",
+        min_value=1,
+        max_value=30,
+        value=7,
+        step=1,
+        help="How many days do you have to prepare?"
+    )
+
+
     if st.button("Generate Study Plan", type="primary"):
         if not jd.strip() or not user_desc.strip():
             st.warning("Please fill in both fields.")
         else:
             with st.spinner("Running multi-agent pipeline..."):
-                days, summaries = multi_agent(jd, user_desc)
+                result = multi_agent(jd, user_desc, days_left)
+                days = result["days"]
+                summaries = result["summaries"]
 
             chat = {
                 "id": str(uuid.uuid4()),
                 "title": jd.split("\n")[0][:40],
                 "jd": jd,
                 "user_desc": user_desc,
+                "days_left": days_left,
                 "days": days,
                 "summaries": summaries
             }
@@ -84,6 +97,7 @@ if st.session_state.current_chat_id is None:
 else:
     chat = next(c for c in st.session_state.chats if c["id"] == st.session_state.current_chat_id)
     st.markdown(f"### 📌 {chat['title']} ....")
+    st.caption(f"⏰ Total Days: {chat.get('days_left', 'N/A')}")
     with st.expander("🧠 User Background", expanded=False):
         st.write(chat["user_desc"])
     with st.expander("📄 Job Description", expanded=False):

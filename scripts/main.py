@@ -3,19 +3,12 @@ from openai import OpenAI
 
 from scripts.skill_analyzer_agent import SkillAnalyzerAgent
 from scripts.scope_planner_agent import ScopePlannerAgent
-from scripts.input_analyzer import TEMPLATE_A
-from scripts.skill_mapper import TEMPLATE_B
 
 def main():
     client = OpenAI()
 
-    taxonomy_path = "data/taxonomy_skills.json"
-
     agent = SkillAnalyzerAgent(
-        client=client,
-        taxonomy_path=taxonomy_path,
-        template_A=TEMPLATE_A,
-        template_B=TEMPLATE_B,
+        client=client
     )
 
     jd = """
@@ -41,28 +34,28 @@ def main():
     """
 
     
-    weights = agent.run(jd_text=jd, user_desc=user)
+    agent1 = agent.run(jd_text=jd, user_desc=user)
 
     
-    # print("\n===== Extracted Keywords =====")
-    # print(json.dumps(weights["extracted"], indent=2))
-
-    # print("\n===== Mapped Taxonomy Skills =====")
-    # print(json.dumps(weights["mapped"], indent=2))
+    print("\n===== Extracted Keywords =====")
+    print(json.dumps(agent1["extracted"], indent=2))
 
     print("\n===== Mapped Taxonomy Skills =====")
-    print(json.dumps(weights["plan"], indent=2))
+    print(json.dumps(agent1["mapped"], indent=2))
 
-    scope_planner = ScopePlannerAgent(client)
+    print("\n===== Mapped Taxonomy Skills =====")
+    print(json.dumps(agent1["weights"], indent=2))
 
-    final_plan = scope_planner.run(
-        user_desc=user,
-        jd_text=jd,
-        skill_weights=weights["plan"],
-    )
+    # scope_planner = ScopePlannerAgent(client)
 
-    print("\n===== Final Planner Output =====")
-    print(json.dumps(final_plan, indent=2))
+    # final_plan = scope_planner.run(
+    #     user_desc=user,
+    #     jd_text=jd,
+    #     skill_weights=weights["plan"],
+    # )
+
+    # print("\n===== Final Planner Output =====")
+    # print(json.dumps(final_plan, indent=2))
 
 
 if __name__ == "__main__":

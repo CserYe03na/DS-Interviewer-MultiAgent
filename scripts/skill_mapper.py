@@ -50,6 +50,7 @@ ALGO_BASE_PACK = [
 ]
 
 TEMPLATE_B = load_prompt("prompts/skill_mapper.txt")
+TAXONOMY_PATH = "data/taxonomy_skills.json"
 
 class SkillMapper:
     """
@@ -57,7 +58,7 @@ class SkillMapper:
     using the LLM mapping prompt (TEMPLATE_B).
     """
 
-    def __init__(self, client: OpenAI, taxonomy_path: str, template=TEMPLATE_B):
+    def __init__(self, client, taxonomy_path=TAXONOMY_PATH, template=TEMPLATE_B):
         self.client = client
         self.template = template
         self.taxonomy = load_taxonomy(taxonomy_path)
@@ -121,44 +122,44 @@ class SkillMapper:
         return output
 
 
-## Example test
-def main():
-    client = OpenAI()
+# ## Example test
+# def main():
+#     client = OpenAI()
 
-    extracted_keywords = {
-       "required_keywords": [
-            "SQL",
-            "window functions",
-            "complex analytical queries"
-        ],
-        "preferred_keywords": [
-            "Pandas",
-            "random forest"
-        ],
-        "general_keywords": [
-            "data analysis",
-            "metrics framework",
-            "statistical methods",
-            "A/B testing",
-            "causal inference",
-            "data analytics",
-            "business decisions",
-            "data science theories",
-            "methodology",
-            "analysis efficiency",
-            "data product tools",
-            "Math",
-            "Statistic",
-            "Data Science",
-            "Machine Learning",
-            "big data technologies"
-        ]
-    }
+#     extracted_keywords = {
+#        "required_keywords": [
+#             "SQL",
+#             "window functions",
+#             "complex analytical queries"
+#         ],
+#         "preferred_keywords": [
+#             "Pandas",
+#             "random forest"
+#         ],
+#         "general_keywords": [
+#             "data analysis",
+#             "metrics framework",
+#             "statistical methods",
+#             "A/B testing",
+#             "causal inference",
+#             "data analytics",
+#             "business decisions",
+#             "data science theories",
+#             "methodology",
+#             "analysis efficiency",
+#             "data product tools",
+#             "Math",
+#             "Statistic",
+#             "Data Science",
+#             "Machine Learning",
+#             "big data technologies"
+#         ]
+#     }
 
-    mapper = SkillMapper(client, "data/taxonomy_skills.json")
-    mapped = mapper.map(extracted_keywords)
+#     mapper = SkillMapper(client)
+#     mapped = mapper.map(extracted_keywords)
 
-    print(json.dumps(mapped, indent=2))
+#     print(json.dumps(mapped, indent=2))
 
-if __name__ == "__main__":
-    main()
+# if __name__ == "__main__":
+#     main()

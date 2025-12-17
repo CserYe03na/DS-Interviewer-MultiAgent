@@ -15,7 +15,7 @@ TEMPLATE_C = load_prompt("prompts/scope_planner.txt")
 
 
 class ScopePlannerAgent:
-    def __init__(self, client: OpenAI):
+    def __init__(self, client):
         self.client = client
 
     def infer_scope(self, days_left: int, user_desc: str, jd_text: str) -> Dict[str, Any]:

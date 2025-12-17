@@ -15,11 +15,7 @@ class InputAnalyzer:
     This class encapsulates keyword extraction logic.
     """
 
-    def __init__(self, client: OpenAI, template: str):
-        """
-        client: OpenAI client instance
-        template: the extraction prompt template
-        """
+    def __init__(self, client, template=TEMPLATE_A):
         self.client = client
         self.template = template
 
