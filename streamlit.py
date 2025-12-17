@@ -83,7 +83,7 @@ if st.session_state.current_chat_id is None:
 
             chat = {
                 "id": str(uuid.uuid4()),
-                "title": jd.split("\n")[0][:40],
+                "title": f"Chat {len(st.session_state.chats) + 1}",
                 "jd": jd,
                 "user_desc": user_desc,
                 "days_left": days_left,
@@ -96,7 +96,7 @@ if st.session_state.current_chat_id is None:
             st.rerun()
 else:
     chat = next(c for c in st.session_state.chats if c["id"] == st.session_state.current_chat_id)
-    st.markdown(f"### 📌 {chat['title']} ....")
+    st.markdown(f"### 📌 {chat['title']}")
     st.caption(f"⏰ Total Days: {chat.get('days_left', 'N/A')}")
     with st.expander("🧠 User Background", expanded=False):
         st.write(chat["user_desc"])
