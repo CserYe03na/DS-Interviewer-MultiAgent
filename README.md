@@ -74,8 +74,10 @@ Generates executable interview preparation plans based on user preference (e.g.,
   * The annotated SQL dataset is written to: `data/sql.json`
 
 
-#### **b. Python/Pandas Leetcode Database**
+#### **b. Algorithms/Pandas Leetcode Database**
 * **Data Source**
+  * The raw Algorithms and Pandas LeetCode dataset is exported from Kaggle: `https://www.kaggle.com/datasets/alishohadaee/leetcode-problems-dataset`
+  * The exported raw files are stored under: `data/`
 
 
 #### **c. Leetcode Dataset Merge**
