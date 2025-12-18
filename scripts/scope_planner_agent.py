@@ -1,7 +1,7 @@
 import json
 import math
 from typing import Dict, Any, Optional
-from openai import OpenAI
+# from openai import OpenAI
 
 ## Problem
 ## theory：如何定义题目数量？
@@ -169,63 +169,63 @@ class ScopePlannerAgent:
         }
 
 
-def main():
-    client = OpenAI()
-    jd = """
-    Responsibilities:
-    - Conduct data analysis in LIVE related business, including watching experience, creator ecosystem, agency management, algorithm improvement and etc..
-    - Design metrics framework to measure product healthiness, keep tracking of core metrics and understand root causes of metric movements.
-    - Conduct scientific evaluation with statistical methods, including A/B testing and casual inference.
-    - Identify growth opportunities with data analytics, and drive business decisions. Work with PM/MLE/RD to deliver product and strategy improvement.
-    - Research data science theories and methodology, improve analysis efficiency and data product tools.
+# def main():
+#     client = OpenAI()
+#     jd = """
+#     Responsibilities:
+#     - Conduct data analysis in LIVE related business, including watching experience, creator ecosystem, agency management, algorithm improvement and etc..
+#     - Design metrics framework to measure product healthiness, keep tracking of core metrics and understand root causes of metric movements.
+#     - Conduct scientific evaluation with statistical methods, including A/B testing and casual inference.
+#     - Identify growth opportunities with data analytics, and drive business decisions. Work with PM/MLE/RD to deliver product and strategy improvement.
+#     - Research data science theories and methodology, improve analysis efficiency and data product tools.
 
-    Minimum Qualifications:
-    - Currently pursuing an Undergraduate/Master in Math, Statistic, Data Science, Machine Learning, or a related technical discipline.
-    - Expertise in SQL and programming in Python or R.
-    - Strong analytical and causal reasoning mindset, and rigidity on statistical correctness. Strong communication and passion about product challenges.
+#     Minimum Qualifications:
+#     - Currently pursuing an Undergraduate/Master in Math, Statistic, Data Science, Machine Learning, or a related technical discipline.
+#     - Expertise in SQL and programming in Python or R.
+#     - Strong analytical and causal reasoning mindset, and rigidity on statistical correctness. Strong communication and passion about product challenges.
 
-    Preferred Qualifications:
-    - Experience of LIVE related business.
-    - Knowledge of machine learning and recommendation systems.
-    - Experience with big data technologies.
-    """
-    user = """
-    I really want to enhance my SQL coding ability, especially with window functions and more complex analytical queries. I also need help strengthening my Pandas coding skills, random forest related machine learning knowledge as well.
-    however, I do not have too much time for preparation.
-    """
-    days_left = 7
-    skill_weights = {
-        "sql_basic": 0.096,
-        "sql_filter": 0.096,
-        "sql_aggregation": 0.096,
-        "sql_group_by": 0.096,
-        "sql_sorting": 0.096,
-        "sql_window_function": 0.096,
-        "pandas_data_cleaning": 0.0547,
-        "pandas_data_manipulation": 0.0547,
-        "pandas_data_selection": 0.0547,
-        "pandas_data_reshaping": 0.0497,
-        "pandas_data_inspection": 0.0497,
-        "random_forest": 0.0497,
-        "algo_math": 0.0158,
-        "supervised_machine learning": 0.0158,
-        "classification": 0.0158,
-        "clustering": 0.0158,
-        "decision_trees": 0.0158,
-        "neural_networks": 0.0158,
-        "databases": 0.0158
-    }
+#     Preferred Qualifications:
+#     - Experience of LIVE related business.
+#     - Knowledge of machine learning and recommendation systems.
+#     - Experience with big data technologies.
+#     """
+#     user = """
+#     I really want to enhance my SQL coding ability, especially with window functions and more complex analytical queries. I also need help strengthening my Pandas coding skills, random forest related machine learning knowledge as well.
+#     however, I do not have too much time for preparation.
+#     """
+#     days_left = 7
+#     skill_weights = {
+#         "sql_basic": 0.096,
+#         "sql_filter": 0.096,
+#         "sql_aggregation": 0.096,
+#         "sql_group_by": 0.096,
+#         "sql_sorting": 0.096,
+#         "sql_window_function": 0.096,
+#         "pandas_data_cleaning": 0.0547,
+#         "pandas_data_manipulation": 0.0547,
+#         "pandas_data_selection": 0.0547,
+#         "pandas_data_reshaping": 0.0497,
+#         "pandas_data_inspection": 0.0497,
+#         "random_forest": 0.0497,
+#         "algo_math": 0.0158,
+#         "supervised_machine learning": 0.0158,
+#         "classification": 0.0158,
+#         "clustering": 0.0158,
+#         "decision_trees": 0.0158,
+#         "neural_networks": 0.0158,
+#         "databases": 0.0158
+#     }
 
-    planner = ScopePlannerAgent(client)
-    result = planner.run(
-        user_desc=user,
-        jd_text=jd,
-        skill_weights=skill_weights,
-        days_left=days_left
-    )
+#     planner = ScopePlannerAgent(client)
+#     result = planner.run(
+#         user_desc=user,
+#         jd_text=jd,
+#         skill_weights=skill_weights,
+#         days_left=days_left
+#     )
 
-    print(json.dumps(result, indent=2))
+#     print(json.dumps(result, indent=2))
 
 
-if __name__ == "__main__":
-    main()
+# if __name__ == "__main__":
+#     main()

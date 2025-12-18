@@ -10,21 +10,20 @@ This module implements a Planning Agent that:
 
 
 
-Local testing:  包含随机抽取的 questions 和fake input
-1) Create key.env:
+Local testing:
+1) Create .env
    OPENAI_API_KEY=your_key_here
 
 2) Run without LLM:    
-   python Planning_Agent.py --no-llm  （在 terminal输入）
+   python scripts/Agent3/Planning_Agent.py --no-llm
 
 3) Run with LLM reviewer + summaries:
    python Planning_Agent.py
 
    
 
-当在别的file调用 Planning Agent的时候
 
-Call THIS function (ignore main()):
+Call THIS function (ignore main()):   when calling agent in other function
 
     run_planning_agent(
         tasks: List[Dict],
@@ -48,18 +47,39 @@ If use_llm=False:
 - summaries will be None
 
 --------------------------------------------------
-INPUT FORMAT (TASK)
+INPUT FORMAT
 --------------------------------------------------
+
 {
-  "id": str,
-  "title": str,
+  "id": str,                      # unique task ID (e.g. lc:algo_123)
+  "type": Optional[str],          # task type (e.g. theory, coding)
+  "category": Optional[str],      # high-level category (e.g. Algorithms, SQL)
+  "title": str,                   # task title
   "difficulty": "easy|medium|hard",
-  "taxonomy_skills": List[str]
+  "taxonomy_skills": List[str],   # associated skills/tags
+  "url": Optional[str]            # source link (e.g. LeetCode, article)
 }
 
-Output:
-- days: List[List[task]]
-- summaries: Optional[List[{day, summary}]]
+--------------------------------------------------
+OUTPUT
+--------------------------------------------------
+days:
+  List[List[task]]
+  - Tasks grouped by day
+  - Each inner list represents one study day
+  - Tasks retain all fields above
+
+summaries (optional):
+  List[Dict] with format:
+  {
+    "day": int,                   # 1-indexed day number
+    "summary": str                # LLM-generated coaching summary
+  }
+
+Notes:
+- If --no-llm is used, summaries will be None
+- Planning logic (V2) is fully deterministic
+- LLM (V3) is only used for optional review + summaries
 """
 
 
@@ -78,7 +98,7 @@ from openai import OpenAI
 
 
 #   ENV / CLIENT  set up
-load_dotenv("key.env")
+load_dotenv()
 
 def get_openai_client():
     api_key = os.getenv("OPENAI_API_KEY")
@@ -88,7 +108,7 @@ def get_openai_client():
 
 
 #---------------------------------Faking retrival Agent's output-------------
-# DATA LOADING    读取本地的 jsonl
+# DATA LOADING  
 def load_jsonl(path: Path) -> List[Dict[str, Any]]:
     data = []
     with path.open("r", encoding="utf-8") as f:
@@ -98,10 +118,17 @@ def load_jsonl(path: Path) -> List[Dict[str, Any]]:
                 data.append(json.loads(line))
     return data
 
+
 def align_to_retrieval_format(raw_tasks):
     aligned = []
     for r in raw_tasks:
-        meta = r.get("metadata", {})
+        meta = r.get("metadata", {}) or {}
+        url = (
+            meta.get("url")
+            or meta.get("backup_url")
+            or meta.get("source_url")
+        )
+
         aligned.append({
             "score": None,
             "id": r.get("id"),
@@ -109,59 +136,68 @@ def align_to_retrieval_format(raw_tasks):
             "title": meta.get("title"),
             "difficulty": meta.get("difficulty"),
             "taxonomy_skills": meta.get("taxonomy_skills", []),
+            "url": url,
             "preview": r.get("vector_text", "")[:180].replace("\n", " "),
             "metadata": meta,
             "data": r.get("data", {})
         })
     return aligned
-
 #---------------------------Fetch info we need-------------
 def normalize_tasks(raw_tasks):
     normalized = []
     for r in raw_tasks:
-        meta = r.get("metadata", {})
-        if not r.get("id") or not meta.get("title") or not meta.get("difficulty"):
+        meta = r.get("metadata", {}) or {}
+
+        task_id = r.get("id")
+        title = r.get("title") or meta.get("title")
+        difficulty = r.get("difficulty") or meta.get("difficulty")
+
+        if not task_id or not title or not difficulty:
             continue
 
-        skills = meta.get("taxonomy_skills", [])
+        skills = r.get("taxonomy_skills") or meta.get("taxonomy_skills", []) or []
         if isinstance(skills, str):
             skills = [skills]
 
         normalized.append({
-            "id": r["id"],
-            "type": meta.get("type"),
+            "id": task_id,
+            "type": r.get("type") or meta.get("type"),
             "category": meta.get("category"),
-            "title": meta["title"],
-            "difficulty": meta["difficulty"],
-            "taxonomy_skills": skills
+            "title": title,
+            "difficulty": difficulty,
+            "taxonomy_skills": skills,
+            "url": r.get("url") or meta.get("url")
         })
     return normalized
 
 
-# USER PARSING  在user input里找 总共时长以及他的强/弱项
+# USER PARSING  find strength and weakness of user in text
 def parse_request(text: str) -> int:
-    m = re.search(r"(\d+)\s*day", text.lower())
+    m = re.search(r"(\d+)\s*days?\b", text.lower())
     return int(m.group(1)) if m else 7
 
 
 def build_user_profile(text: str):
-    text = text.lower()
+    t = text.lower()
     strong, weak = set(), set()
 
-    if "strong in" in text:
-        strong |= {s.strip() for s in text.split("strong in")[1].split(",")}
+    if "strong in" in t:
+        part = t.split("strong in", 1)[1]
+        part = part.split("weak in", 1)[0]
+        strong |= {s.strip() for s in part.split(",") if s.strip()}
 
-    if "weak in" in text:
-        weak |= {s.strip() for s in text.split("weak in")[1].split(",")}
+    if "weak in" in t:
+        part = t.split("weak in", 1)[1]
+        part = part.split("strong in", 1)[0]
+        weak |= {s.strip() for s in part.split(",") if s.strip()}
 
     return {"strong": strong, "weak": weak}
-
 
 # ------------------------------DIFFICULTY LOGIC--------------
 def build_difficulty_curve(n):
     """
     Smooth difficulty curve:
-    ramp up → peak → taper for review  我们想要的难度曲线
+    ramp up → peak → taper for review   The difficulty distribution we want
     """
     if n <= 0:
         return []
@@ -178,7 +214,7 @@ def build_difficulty_curve(n):
     total = sum(raw)
     return [v / total for v in raw]
 
-# 根据用户擅长与否调整题目默认的难度
+
 def adjusted_difficulty(task, profile):
     base = {"easy": 1, "medium": 2, "hard": 3}[task["difficulty"]]
     skills = [s.lower() for s in task.get("taxonomy_skills", [])]
@@ -210,7 +246,7 @@ def rebalance_underfilled_days(days, day_scores, targets):
 
             if day_scores[donor] <= targets[donor]:
                 continue
-
+# Adjust the hardness of questions based on user's familarity with that topic / skill
             # move the hardest task
             hardest = max(
                 days[donor],
@@ -261,7 +297,7 @@ def cap_overfilled_days(days, day_scores, targets):
 
 
 
-# V2 — DETERMINISTIC PLANNER --- 不使用 后续 reviewer llm 以及 smmary llm 直接返回按照逻辑的初版 plan
+# V2 — DETERMINISTIC PLANNER --- Skipping the reviewer and summary llm, return the plans generated by logic
 def assign_tasks(tasks, targets, profile):
     scored = [
         {**t, "score": adjusted_difficulty(t, profile)}
@@ -274,8 +310,7 @@ def assign_tasks(tasks, targets, profile):
     day_scores = [0.0] * num_days
     day_skills = [set() for _ in range(num_days)]
 
-    MAX_TASKS = 6
-    MAX_SKILLS = 2
+    MAX_SKILLS = 2   # Maximum number of questions should we focus on each day
 
     # seed one task per day
     for i in range(num_days):
@@ -292,8 +327,6 @@ def assign_tasks(tasks, targets, profile):
         best_day, best_cost = None, float("inf")
 
         for i in range(num_days):
-            if len(days[i]) >= MAX_TASKS:
-                continue
 
             skill_penalty = (
                 3.0
@@ -345,7 +378,7 @@ def generate_study_plan_v2(tasks, user_text):
     return reorder(days)
 
 
-# V3 — LLM REVIEWER + SUMMARY  两个 LLM reviewer review 初版assignment, see any problem sequence to change
+# V3 — LLM REVIEWER + SUMMARY      Using LLM reviewer to review, see any problem sequence to change
 def safe_parse_json(text):
     """
     Safely parse JSON from LLM output.
@@ -589,8 +622,7 @@ def run_planning_agent(
 
 
 
-
-# MAIN (CLI)   包含default, fake inputs
+# MAIN (CLI)
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--input", default="data/merged.jsonl")
@@ -638,9 +670,12 @@ def main():
         print(f"\nDAY {i} — difficulty {sum(diff[t['difficulty']] for t in day)}")
         for t in day:
             print(f"  • {t['id']} — {t['title']} ({t['difficulty']})")
+            if t.get("url"):
+                print(f"      ↳ {t['url']}")
 
         if i in summary_map:
             print("Summary:", summary_map[i])
+
 
 if __name__ == "__main__":
     main()
@@ -651,71 +686,119 @@ if __name__ == "__main__":
 """
 Exampel Output (with LLM)
 
-DAY 1 — difficulty 11
-  • lc:algo_1112 — Number of Students Doing Homework at a Given Time (easy)
-  • th:theory_00072 — How do we know how many trees we need in random forest? (easy)
-  • lc:algo_365 — Island Perimeter (easy)
-  • lc:algo_888 — Longest Well-Performing Interval (medium)
-  • lc:algo_1542 — The Score of Students Solving Math Expression (hard)
-  • lc:algo_382 — Smallest Good Base (hard)
-Summary: Great start! Today, focus on understanding the basics of data structures and algorithms with the easy tasks. For example, solving 'Island Perimeter' (algo_463) will help you practice spatial reasoning, which is crucial for many coding interviews. As you tackle the harder problems like 'The Score of Students Solving Math Expression' (algo_1206), remember that persistence is key—keep refining your approach!
-
-DAY 2 — difficulty 13
-  • lc:algo_2219 — Matrix Similarity After Cyclic Shifts (easy)
+DAY 1 — difficulty 13
   • lc:algo_1825 — Minimum Hours of Training to Win a Competition (easy)
-  • lc:algo_163 — Majority Element (easy)
-  • lc:algo_2404 — Find the Maximum Length of Valid Subsequence II (medium)
-  • lc:algo_1714 — Number of Ways to Buy Pens and Pencils (medium)
-  • lc:algo_116 — Populating Next Right Pointers in Each Node (medium)
-  • lc:algo_369 — Validate IP Address (medium)
-  • lc:algo_2284 — Maximum Palindromes After Operations (medium)
-Summary: You're doing fantastic! Today's tasks will enhance your problem-solving skills, especially with arrays and matrices. The 'Majority Element' (algo_169) is a great way to practice counting techniques, while 'Populating Next Right Pointers in Each Node' (algo_116) will strengthen your understanding of tree structures. Keep pushing through the medium challenges—they're designed to stretch your abilities!
-
-DAY 3 — difficulty 15
-  • lc:algo_108 — Convert Sorted Array to Binary Search Tree (easy)
-  • th:theory_00057 — What is feature selection? Why do we need it? (easy)
-  • lc:algo_622 — Binary Tree Pruning (medium)
-  • lc:algo_867 — Letter Tile Possibilities (medium)
-  • lc:algo_404 — Find Largest Value in Each Tree Row (medium)
-  • lc:algo_1456 — Count Sub Islands (medium)
-  • lc:algo_1394 — Minimum Sideway Jumps (medium)
-  • lc:algo_557 — Parse Lisp Expression (hard)
-Summary: Keep up the momentum! Today’s focus on binary trees and feature selection will deepen your understanding of data structures and their applications. 'Binary Tree Pruning' (algo_669) will help you practice recursion, which is a vital skill in interviews. As you approach the harder problems, remember that tackling complex issues builds your confidence and expertise!
-
-DAY 4 — difficulty 22
-  • lc:algo_2605 — Check If Digits Are Equal in String After Operations I (easy)
-  • lc:algo_88 — Merge Sorted Array (easy)
-  • lc:algo_2055 — Minimum String Length After Removing Substrings (easy)
-  • lc:algo_1717 — Calculate Digit Sum of a String (easy)
-  • lc:algo_2458 — K-th Nearest Obstacle Queries (medium)
-  • lc:algo_1069 — Count Number of Teams (medium)
-  • lc:SQL_82 — Investments In 2016 (medium)
-  • lc:algo_2451 — Final Array State After K Multiplication Operations II (hard)
+      ↳ https://leetcode.com/problems/minimum-hours-of-training-to-win-a-competition
   • lc:algo_2218 — Find Maximum Non-decreasing Array Length (hard)
-  • lc:algo_938 — Count Vowels Permutation (hard)
-  • lc:algo_881 — Parsing A Boolean Expression (hard)
-Summary: You're making great progress! Today's tasks will sharpen your skills in string manipulation and array handling. 'Merge Sorted Array' (algo_88) is a classic problem that will enhance your understanding of sorting algorithms. As you work on the harder tasks, like 'Count Vowels Permutation' (algo_1220), challenge yourself to think outside the box—this will prepare you for unexpected questions in interviews!
-
-DAY 5 — difficulty 18
-  • lc:algo_94 — Binary Tree Inorder Traversal (easy)
-  • lc:algo_1124 — Maximum Product of Two Elements in an Array (easy)
-  • lc:algo_1704 — Find Players With Zero or One Losses (medium)
-  • lc:algo_2399 — Find the Minimum Area to Cover All Ones I (medium)
-  • lc:algo_1125 — Maximum Area of a Piece of Cake After Horizontal and Vertical Cuts (medium)
-  • lc:algo_12 — Integer to Roman (medium)
-  • lc:algo_639 — Masking Personal Information (medium)
-  • lc:algo_800 — Subarrays with K Different Integers (hard)
+      ↳ https://leetcode.com/problems/find-maximum-non-decreasing-array-length
   • lc:algo_1379 — Count Pairs With XOR in a Range (hard)
-Summary: Fantastic effort! Today, you'll work on tree traversal and array manipulation, which are key areas in coding interviews. 'Binary Tree Inorder Traversal' (algo_94) will solidify your understanding of tree structures, while 'Maximum Product of Two Elements in an Array' (algo_1464) will help you practice optimization techniques. Embrace the challenges of the harder problems—they're stepping stones to mastering coding interviews!
+      ↳ https://leetcode.com/problems/count-pairs-with-xor-in-a-range
+  • lc:algo_1542 — The Score of Students Solving Math Expression (hard)
+      ↳ https://leetcode.com/problems/the-score-of-students-solving-math-expression
+  • lc:algo_382 — Smallest Good Base (hard)
+      ↳ https://leetcode.com/problems/smallest-good-base
+Summary: Great start with a mix of easy and hard problems! Focus on 'Minimum Hours of Training to Win a Competition' (algo_2605) to build your foundational skills in problem-solving. Tackling harder questions like 'Count Pairs With XOR in a Range' will enhance your analytical thinking, which is crucial for technical interviews.
 
-DAY 6 — difficulty 15
-  • th:theory_00157 — What are good baselines when building a recommender system? (easy)
+DAY 2 — difficulty 18
+  • lc:algo_94 — Binary Tree Inorder Traversal (easy)
+      ↳ https://leetcode.com/problems/binary-tree-inorder-traversal
   • lc:algo_1364 — Check if Binary String Has at Most One Segment of Ones (easy)
-  • lc:algo_442 — Array Nesting (medium)
-  • lc:algo_989 — Sum of Mutated Array Closest to Target (medium)
-  • lc:algo_900 — Binary Tree Coloring Game (medium)
-  • lc:algo_405 — Longest Palindromic Subsequence (medium)
-  • lc:algo_342 — Find All Anagrams in a String (medium)
+      ↳ https://leetcode.com/problems/check-if-binary-string-has-at-most-one-segment-of-ones
+  • lc:algo_369 — Validate IP Address (medium)
+      ↳ https://leetcode.com/problems/validate-ip-address
+  • lc:algo_2284 — Maximum Palindromes After Operations (medium)
+      ↳ https://leetcode.com/problems/maximum-palindromes-after-operations
+  • lc:algo_1704 — Find Players With Zero or One Losses (medium)
+      ↳ https://leetcode.com/problems/find-players-with-zero-or-one-losses
+  • lc:algo_888 — Longest Well-Performing Interval (medium)
+      ↳ https://leetcode.com/problems/longest-well-performing-interval
+  • lc:algo_2399 — Find the Minimum Area to Cover All Ones I (medium)
+      ↳ https://leetcode.com/problems/find-the-minimum-area-to-cover-all-ones-i
+  • lc:algo_1125 — Maximum Area of a Piece of Cake After Horizontal and Vertical Cuts (medium)
+      ↳ https://leetcode.com/problems/maximum-area-of-a-piece-of-cake-after-horizontal-and-vertical-cuts
+  • lc:algo_12 — Integer to Roman (medium)
+      ↳ https://leetcode.com/problems/integer-to-roman
+  • lc:algo_639 — Masking Personal Information (medium)
+      ↳ https://leetcode.com/problems/masking-personal-information
+Summary: You're making excellent progress! Begin with 'Binary Tree Inorder Traversal' (algo_2606) to strengthen your understanding of tree traversal techniques. As you move to medium problems like 'Longest Well-Performing Interval', you'll practice critical thinking and time complexity analysis, both vital for coding interviews.
+
+DAY 3 — difficulty 12
+  • th:theory_00057 — What is feature selection? Why do we need it? (easy)
+  • lc:algo_163 — Majority Element (easy)
+      ↳ https://leetcode.com/problems/majority-element
+  • lc:algo_108 — Convert Sorted Array to Binary Search Tree (easy)
+      ↳ https://leetcode.com/problems/convert-sorted-array-to-binary-search-tree
+  • lc:algo_938 — Count Vowels Permutation (hard)
+      ↳ https://leetcode.com/problems/count-vowels-permutation
+  • lc:algo_800 — Subarrays with K Different Integers (hard)
+      ↳ https://leetcode.com/problems/subarrays-with-k-different-integers
   • lc:algo_2647 — Shortest Path in a Weighted Tree (hard)
-Summary: You're almost there! Today's tasks will enhance your skills in array operations and string handling. 'Array Nesting' (algo_565) is a great way to practice working with indices and loops. As you tackle the harder problem, 'Shortest Path in a Weighted Tree' (algo_1631), remember that understanding graph theory can set you apart in technical interviews. Keep pushing forward—you’re doing amazing!
+      ↳ https://leetcode.com/problems/shortest-path-in-a-weighted-tree
+Summary: Keep up the momentum! Start with 'What is feature selection? Why do we need it?' to grasp essential concepts in data science. As you tackle 'Count Vowels Permutation', you'll enhance your combinatorial problem-solving skills, which are often tested in interviews.
+
+DAY 4 — difficulty 12
+  • lc:algo_365 — Island Perimeter (easy)
+      ↳ https://leetcode.com/problems/island-perimeter
+  • th:theory_00157 — What are good baselines when building a recommender system? (easy)
+  • th:theory_00072 — How do we know how many trees we need in random forest? (easy)
+  • lc:algo_2451 — Final Array State After K Multiplication Operations II (hard)
+      ↳ https://leetcode.com/problems/final-array-state-after-k-multiplication-operations-ii
+  • lc:algo_881 — Parsing A Boolean Expression (hard)
+      ↳ https://leetcode.com/problems/parsing-a-boolean-expression
+  • lc:algo_557 — Parse Lisp Expression (hard)
+      ↳ https://leetcode.com/problems/parse-lisp-expression
+Summary: You're doing fantastic! Begin with 'Island Perimeter' to solidify your understanding of grid-based problems. As you progress to 'Final Array State After K Multiplication Operations II', you'll sharpen your skills in algorithm design and optimization, which are crucial for technical interviews.
+
+DAY 5 — difficulty 22
+  • lc:algo_2605 — Check If Digits Are Equal in String After Operations I (easy)
+      ↳ https://leetcode.com/problems/check-if-digits-are-equal-in-string-after-operations-i
+  • lc:algo_88 — Merge Sorted Array (easy)
+      ↳ https://leetcode.com/problems/merge-sorted-array
+  • lc:algo_1112 — Number of Students Doing Homework at a Given Time (easy)
+      ↳ https://leetcode.com/problems/number-of-students-doing-homework-at-a-given-time
+  • lc:algo_2219 — Matrix Similarity After Cyclic Shifts (easy)
+      ↳ https://leetcode.com/problems/matrix-similarity-after-cyclic-shifts
+  • lc:algo_2055 — Minimum String Length After Removing Substrings (easy)
+      ↳ https://leetcode.com/problems/minimum-string-length-after-removing-substrings
+  • lc:algo_1124 — Maximum Product of Two Elements in an Array (easy)
+      ↳ https://leetcode.com/problems/maximum-product-of-two-elements-in-an-array
+  • lc:algo_622 — Binary Tree Pruning (medium)
+      ↳ https://leetcode.com/problems/binary-tree-pruning
+  • lc:algo_867 — Letter Tile Possibilities (medium)
+      ↳ https://leetcode.com/problems/letter-tile-possibilities
+  • lc:algo_404 — Find Largest Value in Each Tree Row (medium)
+      ↳ https://leetcode.com/problems/find-largest-value-in-each-tree-row
+  • lc:algo_1456 — Count Sub Islands (medium)
+      ↳ https://leetcode.com/problems/count-sub-islands
+  • lc:algo_1394 — Minimum Sideway Jumps (medium)
+      ↳ https://leetcode.com/problems/minimum-sideway-jumps
+  • lc:algo_2458 — K-th Nearest Obstacle Queries (medium)
+      ↳ https://leetcode.com/problems/k-th-nearest-obstacle-queries
+  • lc:algo_1069 — Count Number of Teams (medium)
+      ↳ https://leetcode.com/problems/count-number-of-teams
+  • lc:SQL_82 — Investments In 2016 (medium)
+      ↳ https://leetcode.com/problems/investments-in-2016/
+Summary: Great job on reaching day 5! Start with 'Check If Digits Are Equal in String After Operations I' to reinforce your string manipulation skills. Moving on to 'Binary Tree Pruning' will help you practice tree algorithms, a common topic in coding interviews.
+
+DAY 6 — difficulty 17
+  • lc:algo_1717 — Calculate Digit Sum of a String (easy)
+      ↳ https://leetcode.com/problems/calculate-digit-sum-of-a-string
+  • lc:algo_442 — Array Nesting (medium)
+      ↳ https://leetcode.com/problems/array-nesting
+  • lc:algo_989 — Sum of Mutated Array Closest to Target (medium)
+      ↳ https://leetcode.com/problems/sum-of-mutated-array-closest-to-target
+  • lc:algo_900 — Binary Tree Coloring Game (medium)
+      ↳ https://leetcode.com/problems/binary-tree-coloring-game
+  • lc:algo_405 — Longest Palindromic Subsequence (medium)
+      ↳ https://leetcode.com/problems/longest-palindromic-subsequence
+  • lc:algo_342 — Find All Anagrams in a String (medium)
+      ↳ https://leetcode.com/problems/find-all-anagrams-in-a-string
+  • lc:algo_2404 — Find the Maximum Length of Valid Subsequence II (medium)
+      ↳ https://leetcode.com/problems/find-the-maximum-length-of-valid-subsequence-ii
+  • lc:algo_1714 — Number of Ways to Buy Pens and Pencils (medium)
+      ↳ https://leetcode.com/problems/number-of-ways-to-buy-pens-and-pencils
+  • lc:algo_116 — Populating Next Right Pointers in Each Node (medium)
+      ↳ https://leetcode.com/problems/populating-next-right-pointers-in-each-node
+Summary: You're almost there! Begin with 'Calculate Digit Sum of a String' to warm up your problem-solving skills. As you tackle 'Longest Palindromic Subsequence', you'll enhance your dynamic programming abilities, which are essential for many technical interviews.
+
 """

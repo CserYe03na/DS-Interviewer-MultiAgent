@@ -1,4 +1,0 @@
-streamlit
-sentence_transformers
-langgraph
-openai
