@@ -11,7 +11,7 @@ This module implements a Planning Agent that:
 
 
 Local testing:
-1) Create .env.example:
+1) Create .env
    OPENAI_API_KEY=your_key_here
 
 2) Run without LLM:    
@@ -197,7 +197,7 @@ def build_user_profile(text: str):
 def build_difficulty_curve(n):
     """
     Smooth difficulty curve:
-    ramp up → peak → taper for review  我们想要的难度曲线
+    ramp up → peak → taper for review   The difficulty distribution we want
     """
     if n <= 0:
         return []
