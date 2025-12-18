@@ -95,7 +95,7 @@ Generates executable interview preparation plans based on user preference (e.g.,
         }
     }
     ```
-        ```json
+    ```json
     {
         "vector_content": "<cleaned content>",
         "metadata": {
