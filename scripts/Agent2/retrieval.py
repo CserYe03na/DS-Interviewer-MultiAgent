@@ -76,7 +76,7 @@ def mmr_rerank(
         else:
             sel = np.array(selected, dtype=np.int64)
             max_to_sel = cc_sim[:, sel].max(axis=1)
-            mmr_score = lambda_ * qsim - (1 - lambda_) * max_to_sel
+            mmr_score = lambda_ * qsim - (1.0 - lambda_) * max_to_sel
             mmr_score[selected_mask] = -1e9
             j = int(np.argmax(mmr_score))
 
@@ -101,16 +101,13 @@ class Retriever:
         self.emb = emb
         self.embedder = embedder
 
-        # 常用字段
+        # 常用字段缓存
         self.ids = [r["id"] for r in merged]
         self.titles = [r["metadata"].get("title", "") for r in merged]
         self.types = [r["metadata"].get("type", "") for r in merged]
         self.skills = [r["metadata"].get("taxonomy_skills", []) for r in merged]
-
-        # ⭐ 新增 difficulty 字段，直接从 metadata 里取
-        self.difficulties = [
-            r["metadata"].get("difficulty") for r in merged
-        ]
+        self.difficulties = [r["metadata"].get("difficulty") for r in merged]
+        self.urls = [r["metadata"].get("url") for r in merged]
 
     def retrieve(
         self,
@@ -120,15 +117,26 @@ class Retriever:
         lambda_: float = 0.7,
         type_filter: Optional[str] = None,
         skill_filter: Optional[str] = None,
+        difficulty_distribution: Optional[Dict[str, float]] = None,
     ) -> List[Dict[str, Any]]:
 
+        # ===== 1. query embedding =====
         q = self.embedder.encode(
             [query],
             normalize_embeddings=True,
         ).astype(np.float32)[0]
 
-        sims = self.emb @ q
+        sims = self.emb @ q  # cosine similarity
 
+        # ===== 2. soft difficulty reweight（核心改动）=====
+        if difficulty_distribution is not None:
+            weights = np.ones_like(sims)
+            for i, diff in enumerate(self.difficulties):
+                if diff in difficulty_distribution:
+                    weights[i] = difficulty_distribution[diff]
+            sims = sims * weights
+
+        # ===== 3. filter =====
         n = len(self.merged)
         mask = np.ones(n, dtype=bool)
 
@@ -145,14 +153,18 @@ class Retriever:
         if len(idx) == 0:
             idx = np.arange(n)
 
+        # ===== 4. candidate selection =====
         cand_sims = sims[idx]
         M = min(fetch, len(idx))
         top_cand_local = np.argpartition(-cand_sims, M - 1)[:M]
         cand_idx = idx[top_cand_local]
 
-        picked_idx = mmr_rerank(q, cand_idx, self.emb, lambda_=lambda_, topk=topk)
+        # ===== 5. MMR rerank =====
+        picked_idx = mmr_rerank(
+            q, cand_idx, self.emb, lambda_=lambda_, topk=topk
+        )
 
-        # ⭐ output 这里加上 difficulty
+        # ===== 6. output =====
         results: List[Dict[str, Any]] = []
         for i in picked_idx:
             rec = self.merged[i]
@@ -163,10 +175,11 @@ class Retriever:
                     "type": self.types[i],
                     "title": self.titles[i],
                     "difficulty": self.difficulties[i],
+                    "url": self.urls[i],          # leetcode 有，theory 为 None
                     "taxonomy_skills": self.skills[i][:8],
                     "preview": rec["vector_text"][:180].replace("\n", " "),
                     "metadata": rec["metadata"],
-                    "data": rec["data"]
+                    "data": rec["data"],
                 }
             )
 
@@ -197,13 +210,19 @@ def init_retriever(
 
 # # 3) 调用 retrieve 查询
 # results = retriever.retrieve(
-#     query="sql window function",
-#     topk=8,
-#     fetch=200,
-#     lambda_=0.75,
-#     type_filter="leetcode",          # 只要 leetcode 题目；不想过滤就用 None
-#     skill_filter="sql_window_function",  # 只要带这个 skill 的；不想过滤就用 None
+#     query="sql window function",          # 用于语义匹配
+#     topk=2,                               # 这个 skill 需要几道题
+#     fetch=200,                            # 候选池大小
+#     lambda_=0.75,                         # MMR 权重（可选）
+#     type_filter="leetcode",               # 只要 leetcode；不想过滤就 None
+#     skill_filter="sql_window_function",   # 硬约束：必须包含这个 skill
+#     difficulty_distribution={             # soft difficulty 偏好
+#         "easy": 0.4,
+#         "medium": 0.4,
+#         "hard": 0.2,
+#     },
 # )
+
 
 # for r in results:
 #     print("\n", round(r["score"], 4), r["id"], f"[{r['type']}]", r["title"])
