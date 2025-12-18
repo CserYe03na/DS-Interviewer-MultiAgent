@@ -28,15 +28,19 @@ def display_days(days, summaries):
         st.caption(f"Difficulty score: {sum(diff[t['difficulty']] for t in day)}")
 
         for t in day:
+            title = t["title"]
+            url = t.get("url")
+            if url:
+                title = f"[{title}]({url})"
             if t["category"]=="Algorithms" or t["category"]=="SQL" or t["category"]=="Pandas":
                 st.markdown(
-                f"- **{t['type']}_{t['category']}** — {t['title']} "
+                f"- **{t['type']}_{t['category']}** — {title} "
                 f"({t['difficulty']})"
             )
             else:
                 st.markdown(
-                    f"- **{t['type']}** — {t['title']} "
-                    f"({t['difficulty']})"
+                f"- **{t['type']}** — {t['title']} "
+                f"({t['difficulty']})"
                 )
 
         if i in summary_map:

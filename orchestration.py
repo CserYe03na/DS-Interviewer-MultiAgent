@@ -58,7 +58,6 @@ def agent_scope(state:AgentState):
 
 def agent2(state:AgentState):
     plan = state.get("plan")
-    # user_desc = state.get("user_desc")
     retriever = init_retriever()
     retrieve_by_skill = {}
     for skill, k in plan.items():
@@ -72,6 +71,7 @@ def agent2(state:AgentState):
             lambda_=0.7,
             type_filter=None,
             skill_filter=skill.replace("_"," "),
+            difficulty_distribution = state.get("difficulty_distribution")
         )
         retrieve_by_skill[skill] = questions
 
