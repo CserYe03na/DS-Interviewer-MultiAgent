@@ -77,8 +77,39 @@ Generates executable interview preparation plans based on user preference (e.g.,
 #### **b. Algorithms/Pandas Leetcode Database**
 * **Data Source**
   * The raw Algorithms and Pandas LeetCode dataset is exported from Kaggle: `https://www.kaggle.com/datasets/alishohadaee/leetcode-problems-dataset`
-  * The exported raw files are stored under: `data/`
-
+  * The exported raw files are stored under: `data/leetcode_problems_raw.json`, and `data/algorithms_raw.json` is extracted from this file
+* **Schema Standardization**
+  * `data_prep/algo_preprocessing.py` and `data_prep/pandas_preprocessing.py` converts each problem into the project standardized JSON schema and annotate the taxonomy skills, finally writes the results to `data/algorithms.json` and `data/pandas.json` respectively
+  * Each record follows the unified schema based on category:
+      ```json
+    {
+        "vector_content": "<cleaned content>",
+        "metadata": {
+        "id":"",
+        "title": "<question title>",
+        "category": "Algorithms",
+        "taxonomy_skill": [ ],
+        "solution_summary": "<summarized answer>",
+        "url": "<leetcode link>",
+        "backup_url":""
+        }
+    }
+    ```
+        ```json
+    {
+        "vector_content": "<cleaned content>",
+        "metadata": {
+        "id":"",
+        "title": "<question title>",
+        "category": "Pandas",
+        "taxonomy_skill": [ ],
+        "solution_summary": "<summarized answer>",
+        "url": "<leetcode link>",
+        "backup_url":""
+        }
+    }
+    ```
+    
 
 #### **c. Leetcode Dataset Merge**
 
