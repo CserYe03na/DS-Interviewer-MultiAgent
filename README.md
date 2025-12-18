@@ -75,8 +75,8 @@ Generates executable interview preparation plans based on user preference (e.g.,
 
 
 #### **b. Python/Pandas Leetcode Database**
+* **Data Source**
 
-<<FILL_IN>>
 
 #### **c. Leetcode Dataset Merge**
 
