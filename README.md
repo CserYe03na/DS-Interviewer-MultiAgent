@@ -113,7 +113,7 @@ Generates executable interview preparation plans based on user preference (e.g.,
 
 #### **c. Leetcode Dataset Merge**
 
-  * `data_prep/merge_leetcode.py` merges the SQL dataset with the Python/algorithm LeetCode dataset, aligning both to a unified schema. The merged output is written to: `data/leetcode.json`
+  * `data_prep/merge_leetcode.py` merges the SQL dataset with the Algorithms/Pandas LeetCode dataset, aligning both to a unified schema. The merged output is written to: `data/leetcode.json`
 
 #### **d. Theory Database**
 
