@@ -28,21 +28,23 @@ def display_days(days, summaries):
         st.caption(f"Difficulty score: {sum(diff[t['difficulty']] for t in day)}")
 
         for t in day:
-            title = t["title"]
+            raw_title = t["title"]
             url = t.get("url")
-            if url:
-                title = f"[{title}]({url})"
-            if t["category"]=="Algorithms" or t["category"]=="SQL" or t["category"]=="Pandas":
-                st.markdown(
-                f"- **{t['type']}_{t['category']}** — {title} "
+            backup_url = t.get("backup_url")
+            title_display = raw_title
+            if t["category"] == "SQL":
+                if backup_url:
+                    title_display = f"[{raw_title}]({backup_url})"
+            else:
+                if url:
+                    title_display = f"[{raw_title}]({url})"
+                elif backup_url:
+                    title_display = f"[{raw_title}]({backup_url})"
+            
+            st.markdown(
+                f"- **{t['type']}_{t['category']}** – {title_display} "
                 f"({t['difficulty']})"
             )
-            else:
-                st.markdown(
-                f"- **{t['type']}** — {t['title']} "
-                f"({t['difficulty']})"
-                )
-
         if i in summary_map:
             st.info(summary_map[i])
 
@@ -77,7 +79,7 @@ if st.session_state.current_chat_id is None:
 
 
     if st.button("Generate Study Plan", type="primary"):
-        if not jd.strip() or not user_desc.strip():
+        if not jd.strip() and not user_desc.strip():
             st.warning("Please fill in both fields.")
         else:
             with st.spinner("Running multi-agent pipeline..."):

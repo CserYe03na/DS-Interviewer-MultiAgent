@@ -122,5 +122,3 @@ def multi_agent(jd,user_desc,days_left):
         "difficulty_distribution": final_state.get("difficulty_distribution"),
         "skill_plan": final_state.get("plan"),
     }
-
-
