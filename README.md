@@ -183,4 +183,7 @@ conda activate ds-interviewer
 python -m streamlit run demo.py
 ```
 ## 💡 Usage Example
-demo url: <<FILL_IN>>
+demo url: https://www.loom.com/share/192589aa565d48ef9b2eb106731a264e
+
+<img width="688" height="504" alt="17ae312c8600869a07a8f1f5e201a6ec" src="https://github.com/user-attachments/assets/eb3a1cec-32d1-4e86-bedd-692e1dff524f" />
+
