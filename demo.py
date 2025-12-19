@@ -40,11 +40,14 @@ def display_days(days, summaries):
                     title_display = f"[{raw_title}]({url})"
                 elif backup_url:
                     title_display = f"[{raw_title}]({backup_url})"
+                difficulty_display = ""
+            if t["category"] in ["SQL", "Algorithms","Pandas"]:
+                difficulty_display = f" ({t['difficulty']})"
             
             st.markdown(
-                f"- **{t['type']}_{t['category']}** – {title_display} "
-                f"({t['difficulty']})"
-            )
+                f"- **{t['type']}_{t['category']}** - {title_display}"
+                f"{difficulty_display}"
+                )
         if i in summary_map:
             st.info(summary_map[i])
 
