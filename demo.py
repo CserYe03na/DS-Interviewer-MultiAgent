@@ -71,7 +71,7 @@ if st.session_state.current_chat_id is None:
     days_left = st.slider(
         "Days left before interview",
         min_value=1,
-        max_value=30,
+        max_value=15,
         value=7,
         step=1,
         help="How many days do you have to prepare?"
